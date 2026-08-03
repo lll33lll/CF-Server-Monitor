@@ -4,6 +4,9 @@ main = "src/index.js"
 compatibility_date = "2024-12-01"
 compatibility_flags = ["nodejs_compat"]
 workers_dev = true
+routes = [
+  { pattern = "accasd.kdns.fr", custom_domain = true }
+]
 
 # Preserve runtime secrets (especially API_SECRET) on future Git deployments.
 keep_vars = true
