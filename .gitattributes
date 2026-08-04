@@ -1,0 +1,4 @@
+wrangler.toml merge=keepLocal
+.github/workflows/deploy.yml merge=keepLocal
+.github/workflows/sync.yml merge=keepLocal
+.gitattributes merge=keepLocal

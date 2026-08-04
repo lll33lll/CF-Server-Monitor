@@ -1,40 +1,85 @@
 name: Upstream Sync
 
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
 permissions:
   contents: write
 
-on:
-  schedule:
-    - cron: "0 0 * * *" # every day
-  workflow_dispatch:
+concurrency:
+  group: upstream-sync
+  cancel-in-progress: false
 
 jobs:
-  sync_latest_from_upstream:
-    name: Sync latest commits from upstream repo
+  sync:
+    if: github.event.repository.fork
     runs-on: ubuntu-latest
-    if: ${{ github.event.repository.fork }}
-
     steps:
-      # Step 1: run a standard checkout action
-      - name: Checkout target repo
-        uses: actions/checkout@v3
-
-      # Step 2: run the sync action
-      - name: Sync upstream changes
-        id: sync
-        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4
+      - name: Checkout target repository
+        uses: actions/checkout@v4
         with:
-          upstream_sync_repo: huilang-me/CF-Server-Monitor
-          upstream_sync_branch: main
-          target_sync_branch: main
-          target_repo_token: ${{ secrets.GITHUB_TOKEN }} # automatically generated, no need to set
+          ref: main
+          fetch-depth: 0
 
-          # Set test_mode true to run tests instead of the true action!!
-          test_mode: false
-
-      - name: Sync check
-        if: failure()
+      - name: Merge upstream main
+        id: sync
         run: |
-          echo "[Error] 由于上游仓库的 workflow 文件变更，导致 GitHub 自动暂停了本次自动更新，请前往仓库页面手动执行 Sync Fork 操作。"
-          echo "[Error] Due to a change in the workflow file of the upstream repository, GitHub has automatically suspended the scheduled automatic update. You need to manually sync your fork."
-          exit 1
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config merge.keepLocal.name "Keep deployment-specific files"
+          git config merge.keepLocal.driver true
+          git remote remove upstream 2>/dev/null || true
+          git remote add upstream https://github.com/huilang-me/CF-Server-Monitor.git
+          git fetch --no-tags upstream main
+
+          before=$(git rev-parse HEAD)
+          git merge --no-edit upstream/main
+          after=$(git rev-parse HEAD)
+
+          if [ "$before" = "$after" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Fork is already current."
+          else
+            git push origin main
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Merged and pushed upstream changes."
+          fi
+
+      - name: Check deployment credentials
+        id: deploy_auth
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          if [ -n "$CF_API_TOKEN" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "CF_API_TOKEN is not configured; Cloudflare Builds may deploy the pushed commit."
+          fi
+
+      - name: Set up Node.js
+        if: (steps.sync.outputs.changed == 'true' || github.event_name == 'workflow_dispatch') && steps.deploy_auth.outputs.enabled == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        if: (steps.sync.outputs.changed == 'true' || github.event_name == 'workflow_dispatch') && steps.deploy_auth.outputs.enabled == 'true'
+        run: npm ci --no-audit --no-fund
+
+      - name: Build frontend
+        if: (steps.sync.outputs.changed == 'true' || github.event_name == 'workflow_dispatch') && steps.deploy_auth.outputs.enabled == 'true'
+        run: npm run build:frontend
+
+      - name: Deploy existing Worker
+        if: (steps.sync.outputs.changed == 'true' || github.event_name == 'workflow_dispatch') && steps.deploy_auth.outputs.enabled == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CF_API_TOKEN }}
+          accountId: 017c037119fdc461098ac4fe0dd96e4d
+          wranglerVersion: "4"
+          command: deploy --keep-vars
