@@ -1,5 +1,5 @@
 # Cloudflare Workers production configuration for this deployment
-# Automatic deployments are handled by Cloudflare Workers Builds from main.
+# Automatic deployments are handled by GitHub Actions from main.
 name = "cf-server-monitor"
 main = "src/index.js"
 compatibility_date = "2024-12-01"
@@ -9,7 +9,7 @@ routes = [
   { pattern = "accasd.kdns.fr", custom_domain = true }
 ]
 
-# Preserve runtime secrets (especially API_SECRET) on future Git deployments.
+# Preserve runtime secrets (especially API_SECRET) on future deployments.
 keep_vars = true
 
 # Scheduled jobs (UTC): offline/resource checks every minute; maintenance hourly.
