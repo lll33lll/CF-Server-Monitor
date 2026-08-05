@@ -1,5 +1,7 @@
 name: Deploy to Cloudflare Workers
 
+# Automatic deployment test marker.
+
 on:
   push:
     branches:
@@ -8,8 +10,6 @@ on:
       - "**.md"
       - ".gitignore"
       - "LICENSE"
-  schedule:
-    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 permissions:
