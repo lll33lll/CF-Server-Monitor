@@ -8,6 +8,8 @@ on:
       - "**.md"
       - ".gitignore"
       - "LICENSE"
+  schedule:
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 permissions:
