@@ -1,8 +1,13 @@
-name: Upstream Sync
+# 手动同步上游 + 部署
+# 2026-09-15 应用户要求：移除每日定时自动更新（原 cron "0 0 * * *"），只保留手动触发。
+# 用法：仓库 Actions 页 → 「🔄 同步上游 + 部署」→ Run workflow（一键完成同步+构建+部署）。
+# 注意：本文件 / wrangler.toml / deploy.yml / .gitattributes 已被 .gitattributes 的
+#       merge=keepLocal 保护，同步上游不会覆盖本地定制；但不要在网页点 Sync fork 的
+#       Discard commits，会丢弃全部本地提交。
+
+name: 🔄 同步上游 + 部署
 
 on:
-  schedule:
-    - cron: "0 0 * * *"
   workflow_dispatch:
 
 permissions:
