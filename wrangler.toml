@@ -6,7 +6,7 @@ compatibility_date = "2024-12-01"
 compatibility_flags = ["nodejs_compat"]
 workers_dev = true
 routes = [
-  { pattern = "accasd.kdns.fr", custom_domain = true }
+  { pattern = "cf-server-monitor.223226.xyz", custom_domain = true }
 ]
 
 # Preserve runtime secrets (especially API_SECRET) on future deployments.
@@ -34,7 +34,7 @@ tag = "v1"
 new_sqlite_classes = ["MetricsBroadcaster"]
 
 [vars]
-CORS_ALLOWED_ORIGINS = "https://accasd.kdns.fr"
+CORS_ALLOWED_ORIGINS = "https://cf-server-monitor.223226.xyz"
 
 [dev]
 port = 8787
